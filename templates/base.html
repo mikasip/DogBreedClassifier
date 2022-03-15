@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+    <title>{% block title %} {% endblock %}</title>
+  </head>
+  <body class="dark">
+    <nav class="navbar navbar-expand-md navbar-light bg-light">
+        <a class="navbar-brand" href="{{ url_for('index')}}">Home</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </nav>
+    <div class="container mb-10">
+        <div>
+            <div class="col-xs-12 col-md-10 mb-3">{% block content %} {% endblock %}</div>
+            <div class="mb-3">
+                <div class="col-xs-12 col-md-10 mb-2">
+                    <form>
+                        <div class="form-group">
+                            <label for="imageURL">Image URL:</label><br>
+                            <input type="text" id="imageURL" name="imageURL" class="form-control">
+                        </div>
+                        <button id="submitbutton" class="btn btn-dark">
+                            <div id="submit-text">Submit</div>
+                            <div id="submitting-text" class="d-none">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                Submitting...
+                            </div>
+                        </button>
+                    </form>
+                </div>
+                <div class="col-xs-12 col-md-10">
+                    <form enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="localImage">Select local image:</label><br>
+                            <input type="file" id="localImage" name="localImage">
+                        </div>
+                        <button id="uploadbutton" class="btn btn-dark">
+                            <div id="upload-text">Upload</div>
+                            <div id="uploading-text" class="d-none">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                Uploading...
+                            </div>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div>
+                <div class="col-xs-10 col-md-6">
+                    <img id="image" src="{{url_for('static', filename='Chihuahua.jpg')}}" alt="No image loaded" class="img-fluid hidden"/>
+                    <p id="output"></p>
+                </div>
+                <div class="col-xs-12 col-md-10">
+                    <table id="breedtable" class="table table-striped">
+                        <thead class="thead-dark">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Breed</th>
+                            <th scope="col">Probability</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                            <th scope="row">1</th>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">2</th>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">3</th>
+                            <td>-</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script>
+        $(document).ready(() => {
+            let submitbutton = $("button#submitbutton")
+            let uploadbutton = $("button#uploadbutton")
+
+            function post(imageUrl, local = 0, callback = null) {
+                $.post("classify", 
+                    JSON.stringify({ imageURL: imageUrl, local: local }),
+                    response => {
+                        $("#image").attr("src", imageUrl);
+                        $("#image").css("visibility", "visible")
+                        response_arr = JSON.parse(response)
+                        $("p#output").last().html("This image is classified as " + response_arr[0][0])
+                        let tbody = $("#breedtable tbody").first()
+                        $("#breedtable tbody tr").remove()
+                        response_arr.forEach((el, i) => {
+                            row = i + 1
+                            tbody.append("<tr><th scope='row'>" + row +"</th><td>" + el[0] +"</td><td>" + Math.round(el[1] * 100) / 100 + "</td></tr>")
+                        });
+                        $("#upload-text").removeClass("d-none")
+                        $("#uploading-text").addClass("d-none")
+                        $("#submit-text").removeClass("d-none")
+                        $("#submitting-text").addClass("d-none")
+                        uploadbutton.prop('disabled', false)
+                        submitbutton.prop('disabled', false)
+                    }, "json").fail((xhr, textStatus, err) => {
+                        $("p#output").last().html("Something went wrong, please try again with another image.")
+                        console.log(xhr.responseText)
+                        $("#submit-text").removeClass("d-none")
+                        $("#submitting-text").addClass("d-none")
+                        $("#upload-text").removeClass("d-none")
+                        $("#uploading-text").addClass("d-none")
+                        uploadbutton.prop('disabled', false)
+                        submitbutton.prop('disabled', false)
+                    }
+                )
+            }
+            submitbutton.on("click", e => {
+                e.preventDefault();
+                submitbutton.prop('disabled', true)
+                uploadbutton.prop('disabled', true)
+                $("#submitting-text").removeClass("d-none")
+                $("#submit-text").addClass("d-none")
+                let imageUrl = $("input#imageURL").val()
+                post(imageUrl)});
+
+            uploadbutton.click( e => {
+                e.preventDefault();
+                uploadbutton.prop('disabled', true)
+                submitbutton.prop('disabled', true)
+                $("#uploading-text").removeClass("d-none")
+                $("#upload-text").addClass("d-none")
+                var fd = new FormData();
+                var files = $('#localImage')[0].files;
+
+                // Check file selected or not
+                if(files.length > 0 ){
+                fd.append('image',files[0]);
+                $.ajax({
+                    url: 'upload',
+                    type: 'POST',
+                    data: fd,
+                    contentType: false,
+                    processData: false,
+                    success: function(response){
+                        if(response != 0){
+                            $("#image").attr("src",response);
+                            post(response, 1, () => {
+                                $.post("delete", 
+                                    JSON.stringify({ imagePath: response}))
+                            })
+                        }else{
+                            $("p#output").last().html("Something went wrong, please try again with another image.")
+                            uploadbutton.prop('disabled', false)
+                            submitbutton.prop('disabled', false)
+                            $("#upload-text").removeClass("d-none")
+                            $("#uploading-text").addClass("d-none")
+                        }
+                    },
+                    error: function(response) {
+                        $("p#output").last().html("Something went wrong, please try again with another image.")
+                        uploadbutton.prop('disabled', false)
+                        submitbutton.prop('disabled', false)
+                        $("#upload-text").removeClass("d-none")
+                        $("#uploading-text").addClass("d-none")
+                        
+                    }
+                });
+                }else{
+                    alert("Please select a file.");
+                }
+            });
+
+            post("static/Chihuahua.jpg", 1)
+        })
+    </script>
+  </body>
+</html> 
